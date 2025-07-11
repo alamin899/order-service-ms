@@ -1,3 +1,4 @@
 /node_modules
 .env
 .idea
+k8s/aws-secret.yaml
