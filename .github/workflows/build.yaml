@@ -15,16 +15,16 @@ jobs:
 
       - name: Set up .env file from example and secrets
         run: |
-          cp .env.example .env
-          sed -i 's/^JWT_SECRET=.*/JWT_SECRET=${{ secrets.JWT_SECRET }}/' .env
-          sed -i 's/^DB_HOST=.*/DB_HOST=${{ secrets.DB_HOST }}/' .env
-          sed -i 's/^DB_USER=.*/DB_USER=${{ secrets.DB_USER }}/' .env
-          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=${{ secrets.DB_PASSWORD }}/' .env
-          sed -i 's/^DB_NAME=.*/DB_NAME=${{ secrets.DB_NAME }}/' .env
-          sed -i 's/^PORT=.*/PORT=${{ secrets.RUNNING_PORT }}/' .env
-          sed -i 's/^DB_PORT=.*/DB_PORT=${{ secrets.DB_PORT }}/' .env
-          sed -i 's|^AUTH_SERVICE_URL=.*|AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL }}|' .env
-          sed -i 's|^PRODUCT_SERVICE_URL=.*|PRODUCT_SERVICE_URL=${{ secrets.PRODUCT_SERVICE_URL }}|' .env
+          cp .env.example .env.local
+          sed -i 's/^JWT_SECRET=.*/JWT_SECRET=${{ secrets.JWT_SECRET }}/' .env.local
+          sed -i 's/^DB_HOST=.*/DB_HOST=${{ secrets.DB_HOST }}/' .env.local
+          sed -i 's/^DB_USER=.*/DB_USER=${{ secrets.DB_USER }}/' .env.local
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=${{ secrets.DB_PASSWORD }}/' .env.local
+          sed -i 's/^DB_NAME=.*/DB_NAME=${{ secrets.DB_NAME }}/' .env.local
+          sed -i 's/^PORT=.*/PORT=${{ secrets.RUNNING_PORT }}/' .env.local
+          sed -i 's/^DB_PORT=.*/DB_PORT=${{ secrets.DB_PORT }}/' .env.local
+          sed -i 's|^AUTH_SERVICE_URL=.*|AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL }}|' .env.local
+          sed -i 's|^PRODUCT_SERVICE_URL=.*|PRODUCT_SERVICE_URL=${{ secrets.PRODUCT_SERVICE_URL }}|' .env.local
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
