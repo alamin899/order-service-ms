@@ -8,5 +8,5 @@ data:
   DB_PORT: "3306"
   DB_USER: "kubernetes"
   DB_NAME: "order_db_ms"
-  AUTH_SERVICE_URL: "http://auth-service:3000"
+  AUTH_SERVICE_URL: "http://auth-service:4000"
   PRODUCT_SERVICE_URL: "http://product-service:5000"

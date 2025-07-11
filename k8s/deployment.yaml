@@ -19,3 +19,8 @@ spec:
           image: 127214175530.dkr.ecr.ap-southeast-1.amazonaws.com/ms/order-service:latest
           ports:
             - containerPort: 6000
+          envFrom:
+            - configMapRef:
+                name: order-ms-config
+            - secretRef:
+                name: order-ms-secret
