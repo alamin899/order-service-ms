@@ -1,23 +1,27 @@
 import pool from '../config/db.js';
 
 export const orderList = async (req, res) => {
+    let connection;
     try {
+        connection = await pool.getConnection(); // <-- manually get a connection
+
         const { userId } = req.user;
-        const [orders] = await pool.execute(`
-          SELECT 
-            o.id AS order_id,
-            o.user_id,
-            o.total,
-            o.status,
-            op.product_id,
-            op.quantity,
-            op.price
-          FROM orders o
-          JOIN order_products op ON o.id = op.order_id
-          WHERE o.user_id = ?
-          ORDER BY o.id DESC
-        `, [userId]
-        );
+
+        const [orders] = await connection.execute(`
+            SELECT
+                o.id AS order_id,
+                o.user_id,
+                o.total,
+                o.status,
+                op.product_id,
+                op.quantity,
+                op.price,
+                o.created_at
+            FROM orders o
+                     JOIN order_products op ON o.id = op.order_id
+            WHERE o.user_id = ?
+            ORDER BY o.id DESC
+        `, [userId]);
 
         const grouped = {};
         for (const row of orders) {
@@ -39,7 +43,6 @@ export const orderList = async (req, res) => {
 
         const result = Object.values(grouped);
 
-
         res.json({
             message: "success",
             data: result,
@@ -52,5 +55,7 @@ export const orderList = async (req, res) => {
             data: null,
             error: err.message,
         });
+    } finally {
+        if (connection) connection.release();
     }
 };

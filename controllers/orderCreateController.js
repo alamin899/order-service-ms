@@ -1,8 +1,8 @@
 import pool from '../config/db.js';
 
 export const createOrder = async (req, res) => {
-    let {products} = req.body;
-    const {userId} = req.user;
+    let { products } = req.body;
+    const { userId } = req.user;
 
     // Validation
     if (!userId || !Array.isArray(products) || products.length === 0) {
@@ -13,8 +13,9 @@ export const createOrder = async (req, res) => {
         });
     }
 
-    const connection = await pool.getConnection();
+    let connection;  // declare here
     try {
+        connection = await pool.getConnection();
         await connection.beginTransaction();
 
         const [orderResult] = await connection.execute(
@@ -56,7 +57,7 @@ export const createOrder = async (req, res) => {
         });
 
     } catch (err) {
-        await connection.rollback();
+        if (connection) await connection.rollback();
         console.error('Order transaction failed:', err.message);
         res.status(500).json({
             message: 'Failed to create order',
@@ -64,6 +65,6 @@ export const createOrder = async (req, res) => {
             error: err.message,
         });
     } finally {
-        connection.release();
+        if (connection) connection.release();   // <-- release it here!
     }
 };
