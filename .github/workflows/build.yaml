@@ -90,13 +90,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
             # Substitute environment variables into all Kubernetes YAML files
-            envsubst < ./k8s/configmap.yaml > ./k8s/configmap-substituted.yaml
-            envsubst < ./k8s/secret.yaml > ./k8s/secret-substituted.yaml
-            envsubst < ./k8s/deployment.yaml > ./k8s/deployment-substituted.yaml
-            envsubst < ./k8s/service.yaml > ./k8s/service-substituted.yaml
-            
-            # Apply the substituted Kubernetes resources
-            kubectl apply -f ./k8s/configmap-substituted.yaml
-            kubectl apply -f ./k8s/secret-substituted.yaml
-            kubectl apply -f ./k8s/deployment-substituted.yaml
-            kubectl apply -f ./k8s/service-substituted.yaml
+            envsubst < ./k8s/configmap.yaml | kubectl apply -f -
+            envsubst < ./k8s/secret.yaml | kubectl apply -f -
+            envsubst < ./k8s/deployment.yaml | kubectl apply -f -
+            envsubst < ./k8s/service.yaml | kubectl apply -f -
