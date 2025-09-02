@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order-ms
+  name: ${ORDER_MS_NAME}
 spec:
-  replicas: 2
+  replicas: ${REPLICA_COUNT}
   selector:
     matchLabels:
-      app: order-ms
+      app: ${ORDER_MS_NAME}
   template:
     metadata:
       labels:
-        app: order-ms
+        app: ${ORDER_MS_NAME}
     spec:
       imagePullSecrets:
         - name: regcred
       containers:
-        - name: order-ms
-          image: 127214175530.dkr.ecr.ap-southeast-1.amazonaws.com/ms/order-service:latest
+        - name: ${ORDER_MS_NAME}
+          image: ${DOCKER_IMAGE_URI}:${IMAGE_TAG}
           ports:
-            - containerPort: 6000
+            - containerPort: ${CONTAINER_RUNNING_PORT}
           envFrom:
             - configMapRef:
-                name: order-ms-config
+                name: ${ORDER_MS_NAME}-config
             - secretRef:
-                name: order-ms-secret
+                name: ${ORDER_MS_NAME}-secret

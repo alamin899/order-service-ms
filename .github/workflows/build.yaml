@@ -5,38 +5,58 @@ on:
     branches:
       - master
 jobs:
-  build-and-push:
-    name: Build & Push to Amazon ECR
+  build-push-deploy:
+    name: Build, Push & Deploy to Kubernetes
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up .env file from example and secrets
+      - name: Setup system .env variables
         run: |
-          cp .env.example .env.local
-          sed -i 's/^JWT_SECRET=.*/JWT_SECRET=${{ secrets.JWT_SECRET }}/' .env.local
-          sed -i 's/^DB_HOST=.*/DB_HOST=${{ secrets.DB_HOST }}/' .env.local
-          sed -i 's/^DB_USER=.*/DB_USER=${{ secrets.DB_USER }}/' .env.local
-          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=${{ secrets.DB_PASSWORD }}/' .env.local
-          sed -i 's/^DB_NAME=.*/DB_NAME=${{ secrets.DB_NAME }}/' .env.local
-          sed -i 's/^PORT=.*/PORT=${{ secrets.RUNNING_PORT }}/' .env.local
-          sed -i 's/^DB_PORT=.*/DB_PORT=${{ secrets.DB_PORT }}/' .env.local
-          sed -i 's|^AUTH_SERVICE_URL=.*|AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL }}|' .env.local
-          sed -i 's|^PRODUCT_SERVICE_URL=.*|PRODUCT_SERVICE_URL=${{ secrets.PRODUCT_SERVICE_URL }}|' .env.local
+          echo "ORDER_MS_NAME=${{ vars.ORDER_MS_NAME }}" >> $GITHUB_ENV
+          echo "JWT_SECRET=${{ secrets.KUBERNETES_SECRET_JWT_SECRET }}" >> $GITHUB_ENV
+          echo "AUTH_SERVICE_URL=${{ vars.AUTH_SERVICE_URL }}" >> $GITHUB_ENV
+          echo "PRODUCT_SERVICE_URL=${{ vars.PRODUCT_SERVICE_URL }}" >> $GITHUB_ENV
 
+          echo "AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }}" >> $GITHUB_ENV
+          echo "AWS_REGION=${{ vars.AWS_REGION }}" >> $GITHUB_ENV
+          echo "CONTAINER_REPO_NAME=${{ vars.CONTAINER_REPO_NAME }}" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE_URI=${{vars.DOCKER_IMAGE_URI}}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ vars.DOCKER_IMAGE_TAG }}" >> $GITHUB_ENV
+
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+
+          echo "CONTAINER_RUNNING_PORT=${{ vars.CONTAINER_RUNNING_PORT }}" >> $GITHUB_ENV
+          echo "REPLICA_COUNT=${{ vars.REPLICA_COUNT }}" >> $GITHUB_ENV
+
+          echo "DB_HOST=${{ vars.DB_HOST }}" >> $GITHUB_ENV
+          echo "DB_PORT=${{ vars.DB_PORT }}" >> $GITHUB_ENV
+          echo "DB_USER=${{ vars.DB_USER }}" >> $GITHUB_ENV
+          echo "DB_NAME=${{ vars.DB_NAME }}" >> $GITHUB_ENV
+          echo "DB_PASSWORD=${{ secrets.KUBERNETES_SECRET_DB_PASSWORD }}" >> $GITHUB_ENV
+
+          echo "KUBERNETES_SERVICE_PORT=${{ vars.KUBERNETES_SERVICE_PORT }}" >> $GITHUB_ENV
+          echo "KUBERNETES_TARGET_PORT=${{ vars.KUBERNETES_TARGET_PORT }}" >> $GITHUB_ENV
+          echo "KUBERNETES_NODE_PORT=${{ vars.KUBERNETES_NODE_PORT }}" >> $GITHUB_ENV
+
+          echo "PORT=${{ vars.CONTAINER_RUNNING_PORT }}" >> $GITHUB_ENV
+
+  
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Log in to Amazon ECR
         run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
-          docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | \
+          docker login --username AWS --password-stdin ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -47,4 +67,36 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{secrets.CONTAINER_REPO_NAME}}:latest
+          tags: ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{vars.CONTAINER_REPO_NAME}}:latest
+     
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ vars.KUBECONFIG }}" > $HOME/.kube/config
+
+      - name: Configure Kubernetes to Pull from Private ECR
+        run: |
+          kubectl create secret docker-registry regcred \
+          --docker-server=${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com \
+          --docker-username=AWS \
+          --docker-password=$(aws ecr get-login-password --region ap-southeast-1) \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy to Kubernetes
+        run: |
+            # Substitute environment variables into all Kubernetes YAML files
+            envsubst < ./k8s/configmap.yaml > ./k8s/configmap-substituted.yaml
+            envsubst < ./k8s/secret.yaml > ./k8s/secret-substituted.yaml
+            envsubst < ./k8s/deployment.yaml > ./k8s/deployment-substituted.yaml
+            envsubst < ./k8s/service.yaml > ./k8s/service-substituted.yaml
+            
+            # Apply the substituted Kubernetes resources
+            kubectl apply -f ./k8s/configmap-substituted.yaml
+            kubectl apply -f ./k8s/secret-substituted.yaml
+            kubectl apply -f ./k8s/deployment-substituted.yaml
+            kubectl apply -f ./k8s/service-substituted.yaml

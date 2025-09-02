@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: order-ms-config
+  name: ${ORDER_MS_NAME}-config
 data:
-  PORT: "6000"
-  DB_HOST: "192.168.0.104"
-  DB_PORT: "3306"
-  DB_USER: "kubernetes"
-  DB_NAME: "order_db_ms"
-  AUTH_SERVICE_URL: "http://auth-service:4000"
-  PRODUCT_SERVICE_URL: "http://product-service:5000"
+  PORT: "${CONTAINER_RUNNING_PORT}"
+  DB_HOST: "${DB_HOST}"
+  DB_PORT: "${DB_PORT}"
+  DB_USER: "${DB_USER}" 
+  DB_NAME: "${DB_NAME}"
+  AUTH_SERVICE_URL: "${AUTH_SERVICE_URL}"
+  PRODUCT_SERVICE_URL: "${PRODUCT_SERVICE_URL}"
