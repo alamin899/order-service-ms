@@ -96,6 +96,6 @@ jobs:
             envsubst < ./k8s/service.yaml | kubectl apply -f -
           
           # Apply Ingress configuration (only once, typically from one service)
-            if [ -f ./k8s/ingress.yaml ]; then
-              kubectl apply -f ./k8s/ingress.yaml
-            fi
+          if [ -f ./k8s/ingress.yaml ]; then
+            kubectl apply -f ./k8s/ingress.yaml
+          fi
