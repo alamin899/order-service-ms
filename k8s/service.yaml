@@ -3,11 +3,19 @@ kind: Service
 metadata:
   name: ${ORDER_MS_NAME}-service
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: ${ORDER_MS_NAME}
   ports:
     - protocol: TCP
       port: ${KUBERNETES_SERVICE_PORT}        # Service port 6000
       targetPort: ${CONTAINER_RUNNING_PORT}  # Container port 6000
-      nodePort: ${KUBERNETES_NODE_PORT} # Exposed port on minikube node 30060 (can be between 30000-32767)
+#spec:
+#  type: NodePort
+#  selector:
+#    app: ${ORDER_MS_NAME}
+#  ports:
+#    - protocol: TCP
+#      port: ${KUBERNETES_SERVICE_PORT}        # Service port 6000
+#      targetPort: ${CONTAINER_RUNNING_PORT}  # Container port 6000
+#      nodePort: ${KUBERNETES_NODE_PORT} # Exposed port on minikube node 30060 (can be between 30000-32767)
