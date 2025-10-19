@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+
 jobs:
   build-push-deploy:
     name: Build, Push & Deploy to Kubernetes
@@ -20,32 +21,24 @@ jobs:
           echo "JWT_SECRET=${{ vars.KUBERNETES_SECRET_JWT_SECRET }}" >> $GITHUB_ENV
           echo "AUTH_SERVICE_URL=${{ vars.AUTH_SERVICE_URL }}" >> $GITHUB_ENV
           echo "PRODUCT_SERVICE_URL=${{ vars.PRODUCT_SERVICE_URL }}" >> $GITHUB_ENV
-
           echo "AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }}" >> $GITHUB_ENV
           echo "AWS_REGION=${{ vars.AWS_REGION }}" >> $GITHUB_ENV
           echo "CONTAINER_REPO_NAME=${{ vars.CONTAINER_REPO_NAME }}" >> $GITHUB_ENV
           echo "DOCKER_IMAGE_URI=${{vars.DOCKER_IMAGE_URI}}" >> $GITHUB_ENV
           echo "IMAGE_TAG=${{ vars.DOCKER_IMAGE_TAG }}" >> $GITHUB_ENV
-
           echo "AWS_ACCESS_KEY_ID=${{ vars.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=${{ vars.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-
           echo "CONTAINER_RUNNING_PORT=${{ vars.CONTAINER_RUNNING_PORT }}" >> $GITHUB_ENV
           echo "REPLICA_COUNT=${{ vars.REPLICA_COUNT }}" >> $GITHUB_ENV
-
           echo "DB_HOST=${{ vars.DB_HOST }}" >> $GITHUB_ENV
           echo "DB_PORT=${{ vars.DB_PORT }}" >> $GITHUB_ENV
           echo "DB_USER=${{ vars.DB_USER }}" >> $GITHUB_ENV
           echo "DB_NAME=${{ vars.DB_NAME }}" >> $GITHUB_ENV
           echo "DB_PASSWORD=${{ vars.KUBERNETES_SECRET_DB_PASSWORD }}" >> $GITHUB_ENV
-
           echo "KUBERNETES_SERVICE_PORT=${{ vars.KUBERNETES_SERVICE_PORT }}" >> $GITHUB_ENV
           echo "KUBERNETES_TARGET_PORT=${{ vars.KUBERNETES_TARGET_PORT }}" >> $GITHUB_ENV
-          echo "KUBERNETES_NODE_PORT=${{ vars.KUBERNETES_NODE_PORT }}" >> $GITHUB_ENV
-
           echo "PORT=${{ vars.CONTAINER_RUNNING_PORT }}" >> $GITHUB_ENV
 
-  
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -68,7 +61,7 @@ jobs:
           file: Dockerfile
           push: true
           tags: ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{vars.CONTAINER_REPO_NAME}}:latest
-     
+
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
         with:
@@ -84,18 +77,15 @@ jobs:
           kubectl create secret docker-registry regcred \
           --docker-server=${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com \
           --docker-username=AWS \
-          --docker-password=$(aws ecr get-login-password --region ap-southeast-1) \
+          --docker-password=$(aws ecr get-login-password --region ${{ vars.AWS_REGION }}) \
           --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy to Kubernetes
         run: |
-            # Substitute environment variables into all Kubernetes YAML files
-            envsubst < ./k8s/configmap.yaml | kubectl apply -f -
-            envsubst < ./k8s/secret.yaml | kubectl apply -f -
-            envsubst < ./k8s/deployment.yaml | kubectl apply -f -
-            envsubst < ./k8s/service.yaml | kubectl apply -f -
-          
-          # Apply Ingress configuration (only once, typically from one service)
+          envsubst < ./k8s/configmap.yaml | kubectl apply -f -
+          envsubst < ./k8s/secret.yaml | kubectl apply -f -
+          envsubst < ./k8s/deployment.yaml | kubectl apply -f -
+          envsubst < ./k8s/service.yaml | kubectl apply -f -
           if [ -f ./k8s/ingress.yaml ]; then
             kubectl apply -f ./k8s/ingress.yaml
           fi
